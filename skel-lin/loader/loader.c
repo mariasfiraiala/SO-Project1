@@ -37,7 +37,6 @@ static void segv_handler(int signum, siginfo_t *info, void *context)
 		++seg;
 	}
 
-
 	// if the address is within a segment we investigate it further
 	if (i < exec->segments_no) {
 		// get page for the faulty address
@@ -87,7 +86,6 @@ static void segv_handler(int signum, siginfo_t *info, void *context)
 	else {
 		default_handler.sa_sigaction(signum, info, context);
 	}
-
 }
 
 int so_init_loader(void)
