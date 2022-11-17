@@ -9,6 +9,20 @@
 
 #include <stdint.h>
 
+/* useful macro for handling error codes */
+#define DIE(assertion, call_description)				\
+	do {								\
+		if (assertion) {					\
+			fprintf(stderr, "(%s, %d): ",			\
+					__FILE__, __LINE__);		\
+			perror(call_description);			\
+			exit(EXIT_FAILURE);				\
+		}							\
+	} while(0)
+
+#define ISMAPPED 69
+#define pagesize sysconf(_SC_PAGESIZE)
+
 #define ALIGN_DOWN(v, a) ((v) & ~((a) - 1))
 #define ALIGN_UP(v, a) (((v) + ((a) - 1)) & ~((a)-1))
 
