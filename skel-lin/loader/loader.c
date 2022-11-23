@@ -28,6 +28,7 @@ static void segv_handler(int signum, siginfo_t *info, void *context)
 	// get the segment for which we have a fault
 	uint32_t i = 0;
 	so_seg_t *seg = exec->segments;
+
 	while (i < exec->segments_no &&
 				(addr < seg->vaddr || addr >= seg->vaddr + seg->mem_size)) {
 		++i;
@@ -38,20 +39,20 @@ static void segv_handler(int signum, siginfo_t *info, void *context)
 	if (i < exec->segments_no) {
 		// get page for the faulty address
 		uint32_t page = (addr - seg->vaddr) / pagesize;
-		
+
 		// if there isn't any page mapped for the segment
 		// we'll map some in our opaque (working) array
 		if (!seg->data) {
 			uint32_t no_pages = seg->mem_size / pagesize;
+
 			seg->data = calloc(no_pages, sizeof(*seg->data));
 			DIE(!(seg->data), "calloc() failed");
 		}
 
 		// when we're trying to map a page that already exists, that's a case
 		// for SEGFAULT => reinstate the default handler
-		if (*((char *)(seg->data + page)) == ISMAPPED) {
+		if (*((char *)(seg->data + page)) == ISMAPPED)
 			default_handler.sa_sigaction(signum, info, context);
-		}
 
 		// if we reached this point, it means we now have to map virtual to
 		// physical space
@@ -67,9 +68,11 @@ static void segv_handler(int signum, siginfo_t *info, void *context)
 		// if the page is fully within the file size, copy data into file
 		if ((page + 1) * pagesize <= seg->file_size) {
 			off_t rc_lseek = lseek(fd, seg->offset + page * pagesize, SEEK_SET);
+
 			DIE(rc_lseek == -1, "lseek() failed");
 
 			ssize_t rc_read = read(fd, mapped, pagesize);
+
 			DIE(rc_read == -1, "read() failed");
 		} else if (page * pagesize >= seg->file_size) {
 			// if the page is out of the file size completely, zero the page
@@ -78,20 +81,23 @@ static void segv_handler(int signum, siginfo_t *info, void *context)
 			// if the page is partially within the file, copy the part of it that is
 			// the rest should be zeroed
 			off_t rc_lseek = lseek(fd, seg->offset + page * pagesize, SEEK_SET);
+
 			DIE(rc_lseek == -1, "lseek() failed");
 
-			memset((void *)seg->vaddr + seg->file_size, 0, (page + 1) * pagesize - seg->file_size);
+			memset((void *)seg->vaddr + seg->file_size, 0,
+				  (page + 1) * pagesize - seg->file_size);
 
 			ssize_t rc_read = read(fd, mapped, seg->file_size - page * pagesize);
+
 			DIE(rc_read == -1, "read() failed");
 		}
 
 		int rc_mprotect = mprotect(mapped, pagesize, seg->perm);
+
 		DIE(rc_mprotect == -1, "mprotect() failed");
 
-	}
-	// if the address is not in any of our segments, we use the default handler
-	else {
+	} else {
+		// if the address is not in any of our segments, we use the default handler
 		default_handler.sa_sigaction(signum, info, context);
 	}
 }
